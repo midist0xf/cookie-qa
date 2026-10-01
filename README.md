@@ -8,19 +8,21 @@ This tool runs an automated cookie capacity test on the current page's parent do
 
 ## What It Does
 
-On mount, the app automatically runs a two-phase test:
+On mount, the app automatically runs a two-phase capacity test. Both phases execute in the same synchronous function — no async gaps, no awaits between them.
 
 ### Phase 1 — Capacity Fill
-The app writes 220 small padding cookies (`_cap_test_0` through `_cap_test_219`) to the parent domain. Each cookie is 12 bytes. This brings the cookie jar close to the browser's per-domain limit (Chrome allows ~180 cookies per eTLD+1).
+The app writes 220 small padding cookies (`_cap_test_0` through `_cap_test_219`) to the parent domain using the `setCookie` helper. Each cookie value is 12 bytes. This brings the cookie jar past the browser's per-domain limit (Chrome allows ~180 cookies per eTLD+1), causing the browser to evict older cookies.
 
-### Phase 2 — Fixture Load
-After the capacity fill completes, the app fetches `/test-fixtures.json` and writes the cookies defined there to the parent domain. This tests whether important cookies survive or can be set after the jar has been filled.
+### Phase 2 — Fixture Load (runs immediately after Phase 1, same function)
+Immediately after the loop finishes — still in the same synchronous call — the app reads the pre-bundled fixture data and writes those cookies to the parent domain using the same `setCookie` helper. Because these are set **after** the padding cookies, they are the **newest** entries in the jar and will not be evicted.
+
+Important: the fixture data is imported at build time (`import fixtures from '../public/test-fixtures.json'`), not fetched at runtime. This avoids any async fetch that could be interrupted. The import works because `resolveJsonModule: true` is set in tsconfig.
 
 ### Results Display
 The app shows:
 - Total cookies readable via `document.cookie`
 - How many padding cookies survived
-- Whether each fixture cookie was successfully set (name + value match)
+- Whether each fixture cookie was successfully set (name + value match check)
 - A pass/fail summary
 
 ## How the Domain Is Computed
