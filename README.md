@@ -79,6 +79,8 @@ The `vite.config.ts` is pre-configured with `server.allowedHosts: true` and `ser
 npm install
 npm run dev
 ```
+## NOTES
+Build straight away.
 
 ## License
 
